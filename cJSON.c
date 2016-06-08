@@ -69,6 +69,18 @@ void cJSON_InitHooks(cJSON_Hooks* hooks)
 	cJSON_free	 = (hooks->free_fn)?hooks->free_fn:free;
 }
 
+/* Upper-case Malloc for public API */
+void* cJSON_Malloc(size_t sz)
+{
+	return cJSON_malloc(sz);
+}
+
+/* Upper-case Free for public API */
+void cJSON_Free(void *ptr)
+{
+	cJSON_free(ptr);
+}
+
 /* Internal constructor. */
 static cJSON *cJSON_New_Item(void)
 {
