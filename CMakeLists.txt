@@ -169,7 +169,7 @@ IF(WANTS_BUILD_SHARED_LIBRARY AND WANTS_BUILD_FRAMEWORK)
 #	SET(MACOSX_FRAMEWORK_SHORT_VERSION_STRING "${LUA_MAJOR_VERSION}.${LUA_MINOR_VERSION}.${LUA_PATCH_VERSION}")
 	# Bundle version is the version the OS looks at.
 #	SET(MACOSX_FRAMEWORK_BUNDLE_VERSION "${LUA_MAJOR_VERSION}.${LUA_MINOR_VERSION}.${LUA_PATCH_VERSION}")
-	SET(MACOSX_FRAMEWORK_IDENTIFIER "net.playcontrol.blurrrcore")
+	SET(MACOSX_FRAMEWORK_IDENTIFIER "org.davegamble.cjson")
 	#	SET(MACOSX_BUNDLE_BUNDLE_NAME "lua" )
 
 ELSEIF(WANTS_BUILD_SHARED_LIBRARY)
@@ -228,6 +228,35 @@ ELSEIF(WANTS_BUILD_SHARED_LIBRARY)
 
 
 ENDIF(WANTS_BUILD_SHARED_LIBRARY AND WANTS_BUILD_FRAMEWORK)
+
+
+# test app
+# To do anything on Android requires we start from a Java app and must call into Lua via JNI.
+# So in addition to the normal liblua.so, we also must build our C test program as a library.
+# Then both libraries will be loaded using System.loadLibrary in our Java program.
+# The Java program can then call out to our C test program, which can then start calling Lua API functions.
+# TODO: We could extend this idea to test on other non-commandline GUI systems, such as iOS.
+# In theory, we could carve out a common test C app. Each platform has some minimal driver that gets through the native boilerplate to call our test program.
+if(ANDROID)
+	# This is a hack to get around Android Studio/Gradle deficiencies.
+	# Being able to build an AAR, and then using it in the same project is horribly broken.
+	# After some hackery, I got the testapp target to refer to the AAR, but it only looks at the Java side.
+	# The CMake/NDK side can't find the libraries.
+	# So the hack is to force the NDK side to rebuild all the libraries, plus the libBIAPNativeProgram.so library.
+	# But we don't want the libMyIupProgram.so built when just building the AAR, otherwise it goes into the AAR.
+	# So the build.gradle is required to set -DBIAP_ANDROID_BUILD_TEST_LIBRARY=1 when building the testapp.
+	IF(CJSON_ANDROID_BUILD_TEST_LIBRARY)
+		FIND_LIBRARY( ANDROID_LOG_LIBRARY log )
+		include_directories(${CMAKE_SOURCE_DIR}/src)
+		add_library(TestAppLib SHARED EXCLUDE_FROM_ALL
+			${CMAKE_SOURCE_DIR}/Android/testapp/src/main/cpp/TestAppLib.c
+		)
+	target_link_libraries(TestAppLib cJSON ${ANDROID_LOG_LIBRARY})
+	ENDIF()
+endif()
+
+
+
 
 IF(NOT WANTS_BUILD_FRAMEWORK)
 	INSTALL(TARGETS
